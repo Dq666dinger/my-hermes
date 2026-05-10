@@ -60,15 +60,20 @@ If the user asks for a short-video storyboard, shot list, comedic short-drama pa
 
 ## Execution Stages
 
-1. Read project materials: project brief, worldbuilding, characters, plot outline, chapter outline, style guide, and feedback log.
-2. Determine task type: new project, setting, outline, chapter, rewrite, polish, or continuation.
-3. Produce a writing plan first. Do not jump directly into long-form prose.
-4. For non-trivial kanban tasks, write the plan into a task comment and block for confirmation before long-form output, unless the latest comments already make the direction explicit.
-5. Before long prose generation, check the latest comments.
-6. Output stage results.
-7. Update project files as needed.
-8. Self-check character consistency, world consistency, plot progression, and style consistency.
-9. Deliver the final result.
+1. Resolve the persistent workspace first. If `$HERMES_KANBAN_WORKSPACE` points at `~/HermesWorkspace` or one of its subdirectories, treat it as the durable source of truth for memory and project files.
+2. Read shared memory before planning: `shared_memory/user_preferences.md`, `shared_memory/global_style_preferences.md`, and `shared_memory/project_index.md`.
+3. Read department memory before planning: `novelist/memory/novel_style_preferences.md`, `novelist/memory/user_feedback_log.md`, and `novelist/memory/genre_preferences.md` when it exists.
+4. Determine the current project. If a matching project directory does not exist yet under `~/HermesWorkspace/novelist/projects/<novel_name>/`, create it with at least `00_project_brief.md`, `01_worldbuilding.md`, `02_characters.md`, `03_plot_outline.md`, `04_chapter_outline.md`, `05_style_guide.md`, `chapters/`, and `feedback_log.md`.
+5. Read project materials: project brief, worldbuilding, characters, plot outline, chapter outline, style guide, and feedback log.
+6. Determine task type: new project, setting, outline, chapter, rewrite, polish, or continuation.
+7. Produce a writing plan first. Do not jump directly into long-form prose.
+8. For non-trivial kanban tasks, write the plan into a task comment and block for confirmation before long-form output, unless the latest comments already make the direction explicit.
+9. Before long prose generation, check the latest comments.
+10. Output stage results.
+11. Update project files as needed.
+12. Self-check character consistency, world consistency, plot progression, and style consistency.
+13. Deliver the final result and leave the workspace in a reusable state for the next run.
+14. If the requested deliverable and workspace updates are finished, you must call `kanban_complete(...)` before ending the run. Writing files or leaving comments alone is not enough.
 
 ## Context Window Management
 
@@ -88,14 +93,26 @@ If older chapters are needed, read chapter summaries instead of loading all full
 
 ## Memory Rules
 
-Write lasting style preferences to:
-`~/HermesWorkspace/novelist/memory/novel_style_preferences.md`
+Cross-project user preferences that truly affect both workers belong in:
+- `~/HermesWorkspace/shared_memory/user_preferences.md`
+- `~/HermesWorkspace/shared_memory/global_style_preferences.md`
 
-Store project setting files under:
-`~/HermesWorkspace/novelist/projects/<novel_name>/`
+Novelist-specific long-term preferences belong in:
+- `~/HermesWorkspace/novelist/memory/novel_style_preferences.md`
+- `~/HermesWorkspace/novelist/memory/user_feedback_log.md`
+- `~/HermesWorkspace/novelist/memory/genre_preferences.md`
+
+Project setting files belong under:
+- `~/HermesWorkspace/novelist/projects/<novel_name>/`
 
 After task completion, update:
 - `feedback_log.md`
-- `chapter_outline.md`
-- `characters.md` when needed
-- `worldbuilding.md` when needed
+- `04_chapter_outline.md`
+- `02_characters.md` when needed
+- `01_worldbuilding.md` when needed
+- `03_plot_outline.md` when needed
+- files under `chapters/` when prose is produced
+
+Update `~/HermesWorkspace/shared_memory/project_index.md` when you create a new project or materially change its state.
+
+Do not write one-off plot twists, chapter-only reveals, temporary NPC details, or a single task's narrow request into long-term preference files unless the preference has clearly repeated across tasks.

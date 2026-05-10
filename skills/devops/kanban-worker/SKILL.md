@@ -28,6 +28,12 @@ metadata:
 - `dir:<path>`: treat it as persistent shared state for future runs.
 - `worktree`: behave like a real git worktree; commit there when the task asks for code changes.
 
+## Memory hygiene
+
+- When the workspace is persistent, keep durable preferences separate from one-off task details.
+- Put repeated user taste into long-term memory files; keep project-specific twists and feedback inside the current project directory.
+- If you create a new persistent project folder, update whatever project index or manifest the workspace already uses.
+
 ## Good completion shape
 
 ```python
@@ -57,3 +63,4 @@ kanban_complete(
 - Do not modify files outside the workspace unless the task explicitly requires it.
 - Do not create follow-up tasks assigned to yourself; hand them to the right specialist.
 - Do not mark the task complete if the requested output is still missing.
+- Do not exit after writing files or comments without calling `kanban_complete(...)` or `kanban_block(...)`.
