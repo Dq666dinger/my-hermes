@@ -235,6 +235,8 @@ KANBAN_GUIDANCE = (
     "\n"
     "- Do not shell out to `hermes kanban <verb>` for board operations. Use "
     "the `kanban_*` tools — they work across all terminal backends.\n"
+    "- Do not use `clarify`, terminal prompts, or plain prose as a substitute "
+    "for waiting on a human. In kanban tasks, use `kanban_block(reason=\"...\")`.\n"
     "- Do not complete a task you didn't actually finish. Block it.\n"
     "- Do not assign follow-up work to yourself. Assign it to the right "
     "specialist profile.\n"
@@ -260,7 +262,10 @@ TOOL_USE_ENFORCEMENT_GUIDANCE = (
 
 # Model name substrings that trigger tool-use enforcement guidance.
 # Add new patterns here when a model family needs explicit steering.
-TOOL_USE_ENFORCEMENT_MODELS = ("gpt", "codex", "gemini", "gemma", "grok")
+# Xiaomi MiMo workers also benefit from explicit tool-use steering,
+# especially in kanban flows where prose-only intermediate answers
+# should become `kanban_block` / `kanban_complete` tool calls instead.
+TOOL_USE_ENFORCEMENT_MODELS = ("gpt", "codex", "gemini", "gemma", "grok", "mimo")
 
 # OpenAI GPT/Codex-specific execution guidance.  Addresses known failure modes
 # where GPT models abandon work on partial results, skip prerequisite lookups,
