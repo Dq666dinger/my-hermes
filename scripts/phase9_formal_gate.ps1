@@ -40,9 +40,28 @@ function Invoke-Hermes {
         }
     }
 
+    $stdoutPath = Join-Path ([System.IO.Path]::GetTempPath()) ("phase9_gate_" + [guid]::NewGuid().ToString("N") + "_stdout.txt")
+    $stderrPath = Join-Path ([System.IO.Path]::GetTempPath()) ("phase9_gate_" + [guid]::NewGuid().ToString("N") + "_stderr.txt")
+
     try {
-        $out = & $PythonExe -m hermes_cli.main @Args 2>&1 | Out-String
-        $code = $LASTEXITCODE
+        Write-Host (">> hermes " + ($Args -join " ")) -ForegroundColor DarkGray
+
+        $proc = Start-Process `
+            -FilePath $PythonExe `
+            -ArgumentList (@("-m", "hermes_cli.main") + $Args) `
+            -NoNewWindow `
+            -Wait `
+            -PassThru `
+            -RedirectStandardOutput $stdoutPath `
+            -RedirectStandardError $stderrPath
+
+        $code = $proc.ExitCode
+        $stdout = if (Test-Path $stdoutPath) { Get-Content -LiteralPath $stdoutPath -Raw -Encoding UTF8 } else { "" }
+        $stderr = if (Test-Path $stderrPath) { Get-Content -LiteralPath $stderrPath -Raw -Encoding UTF8 } else { "" }
+        $pieces = @()
+        if ($stdout) { $pieces += $stdout.TrimEnd() }
+        if ($stderr) { $pieces += $stderr.TrimEnd() }
+        $out = ($pieces -join [Environment]::NewLine)
     } finally {
         foreach ($key in $EnvMap.Keys) {
             if ($null -eq $backup[$key]) {
@@ -50,6 +69,12 @@ function Invoke-Hermes {
             } else {
                 Set-Item "Env:$key" $backup[$key]
             }
+        }
+        if (Test-Path $stdoutPath) {
+            Remove-Item -LiteralPath $stdoutPath -Force -ErrorAction SilentlyContinue
+        }
+        if (Test-Path $stderrPath) {
+            Remove-Item -LiteralPath $stderrPath -Force -ErrorAction SilentlyContinue
         }
     }
 
