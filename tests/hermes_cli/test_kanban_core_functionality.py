@@ -2656,6 +2656,46 @@ def test_default_spawn_uses_quiet_chat_mode_for_background_workers(kanban_home, 
     assert cmd[chat_idx + 3] == f"work kanban task {tid}", cmd
 
 
+def test_default_spawn_inherits_runtime_provider_and_model_from_dispatcher_env(
+    kanban_home, monkeypatch
+):
+    """Workers must inherit the dispatcher's explicit runtime provider/model.
+
+    Formal Phase 9 gate pins DeepSeek/Xiaomi via env before calling
+    ``kanban dispatch``. If the spawned worker loses those vars, it can
+    silently fall back to the default Alibaba config and hang the gate.
+    """
+    captured = {}
+
+    class FakeProc:
+        pid = 2468
+
+    def fake_popen(cmd, **kwargs):
+        captured["env"] = kwargs.get("env", {})
+        return FakeProc()
+
+    monkeypatch.setattr("subprocess.Popen", fake_popen)
+    monkeypatch.setenv("HERMES_INFERENCE_PROVIDER", "deepseek")
+    monkeypatch.setenv("HERMES_INFERENCE_MODEL", "deepseek-v4-flash")
+    monkeypatch.setenv("HERMES_TUI_PROVIDER", "deepseek")
+    monkeypatch.setenv("HERMES_MODEL", "deepseek-v4-flash")
+
+    conn = kb.connect()
+    try:
+        tid = kb.create_task(conn, title="provider inheritance", assignee="writer")
+        task = kb.get_task(conn, tid)
+        workspace = kb.resolve_workspace(task)
+        kb._default_spawn(task, str(workspace))
+    finally:
+        conn.close()
+
+    env = captured["env"]
+    assert env.get("HERMES_INFERENCE_PROVIDER") == "deepseek"
+    assert env.get("HERMES_INFERENCE_MODEL") == "deepseek-v4-flash"
+    assert env.get("HERMES_TUI_PROVIDER") == "deepseek"
+    assert env.get("HERMES_MODEL") == "deepseek-v4-flash"
+
+
 
 # ---------------------------------------------------------------------------
 # Per-task force-loaded skills

@@ -291,6 +291,10 @@ if ($deepseekKey) {
     if ($deepseekBase) {
         $envMap["DEEPSEEK_BASE_URL"] = $deepseekBase
     }
+    $envMap["HERMES_INFERENCE_PROVIDER"] = "deepseek"
+    $envMap["HERMES_TUI_PROVIDER"] = "deepseek"
+    $envMap["HERMES_INFERENCE_MODEL"] = "deepseek-v4-flash"
+    $envMap["HERMES_MODEL"] = "deepseek-v4-flash"
 
     $probe = Invoke-Hermes `
         -CliArgs @("-p", "orchestrator", "chat", "-Q", "-q", "Reply with your role name only.", "--provider", "deepseek", "-m", "deepseek-v4-flash") `
@@ -313,6 +317,10 @@ if (-not $provider -and $xiaomiKey) {
     if ($xiaomiBase) {
         $envMap["XIAOMI_BASE_URL"] = $xiaomiBase
     }
+    $envMap["HERMES_INFERENCE_PROVIDER"] = "xiaomi"
+    $envMap["HERMES_TUI_PROVIDER"] = "xiaomi"
+    $envMap["HERMES_INFERENCE_MODEL"] = "mimo-v2.5"
+    $envMap["HERMES_MODEL"] = "mimo-v2.5"
 
     $probe = Invoke-Hermes `
         -CliArgs @("-p", "orchestrator", "chat", "-Q", "-q", "Reply with your role name only.", "--provider", "xiaomi", "-m", "mimo-v2.5") `
