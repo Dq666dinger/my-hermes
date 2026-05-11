@@ -9,6 +9,9 @@ param(
 $ErrorActionPreference = "Stop"
 $OutputEncoding = [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
 
+# Keep this script ASCII-only so Windows PowerShell 5.1 won't misparse it
+# when the file is checked out as UTF-8 without BOM.
+
 function Get-ProviderValue {
     param([string]$Name)
 
@@ -218,7 +221,7 @@ if ($deepseekKey) {
     }
 
     $probe = Invoke-Hermes `
-        -Args @("-p", "orchestrator", "chat", "-Q", "-q", "你是谁？只回答你的角色名称。", "--provider", "deepseek", "-m", "deepseek-v4-flash") `
+        -Args @("-p", "orchestrator", "chat", "-Q", "-q", "Reply with your role name only.", "--provider", "deepseek", "-m", "deepseek-v4-flash") `
         -EnvMap $envMap `
         -AllowFailure
 
@@ -240,7 +243,7 @@ if (-not $provider -and $xiaomiKey) {
     }
 
     $probe = Invoke-Hermes `
-        -Args @("-p", "orchestrator", "chat", "-Q", "-q", "你是谁？只回答你的角色名称。", "--provider", "xiaomi", "-m", "mimo-v2.5") `
+        -Args @("-p", "orchestrator", "chat", "-Q", "-q", "Reply with your role name only.", "--provider", "xiaomi", "-m", "mimo-v2.5") `
         -EnvMap $envMap `
         -AllowFailure
 
@@ -267,13 +270,13 @@ if (-not $provider) {
 $identities = @{}
 foreach ($profile in @("orchestrator", "scriptwriter", "novelist")) {
     $res = Invoke-Hermes `
-        -Args @("-p", $profile, "chat", "-Q", "-q", "你是谁？只回答你的角色名称。", "--provider", $provider, "-m", $model) `
+        -Args @("-p", $profile, "chat", "-Q", "-q", "Reply with your role name only.", "--provider", $provider, "-m", $model) `
         -EnvMap $activeEnv
     $identities[$profile] = $res.output
 }
 
 $scenarioA = @{}
-$promptA = "请把这个需求路由成 kanban 任务并立即创建，不要追问：帮我写一个美发店系列搞笑短视频，员工和老板之间，要求多反转，不要营销。"
+$promptA = "Route this request into a kanban task and create it immediately without follow-up questions: create a funny salon short-video series about employees and the boss, with multiple reversals and no marketing tone."
 $newA = New-OrchestratedTasks -EnvMap $activeEnv -Prompt $promptA -Provider $provider -Model $model
 if ($newA.tasks.Count -ne 1) {
     throw "Scenario A expected 1 new task, got $($newA.tasks.Count)"
@@ -288,7 +291,7 @@ $showA1 = Wait-TaskStatus -EnvMap $activeEnv -TaskId $taskA.id -Wanted @("blocke
 $scenarioA.first_pass_status = $showA1.task.status
 $scenarioA.first_pass_comment_count = (As-Array $showA1.comments).Count
 
-Invoke-Hermes -Args @("kanban", "comment", $taskA.id, "选第 2 个方向，加入小励志，直接输出完整可拍摄版本，并更新记忆和反馈。") -EnvMap $activeEnv | Out-Null
+Invoke-Hermes -Args @("kanban", "comment", $taskA.id, "Choose direction 2, add a small uplifting ending, deliver a complete shoot-ready version, and update memory plus feedback.") -EnvMap $activeEnv | Out-Null
 Invoke-Hermes -Args @("kanban", "unblock", $taskA.id) -EnvMap $activeEnv | Out-Null
 Invoke-Hermes -Args @("kanban", "dispatch") -EnvMap $activeEnv | Out-Null
 
@@ -307,12 +310,12 @@ $feedbackA = Read-Text (Join-Path $projectA "feedback_log.md")
 $scenarioA.final_status = $showA2.task.status
 $scenarioA.workspace_path = $projectA
 $scenarioA.script_files = $scriptFilesA
-$scenarioA.feedback_mentions_motivation = ($feedbackA -match "励志")
+$scenarioA.feedback_mentions_motivation = ($feedbackA -match "uplift|uplifting|motivat|inspir|encourag")
 $scenarioA.run_outcomes = @(As-Array $runsA | ForEach-Object { $_.outcome })
 $scenarioA.latest_summary = $showA2.latest_summary
 
 $scenarioB = @{}
-$promptB = "请把这个需求路由成 kanban 任务并立即创建，不要追问：帮我设计一部赛博修仙小说，主角不要开局太强，女主外冷内热，先给世界观、人物和前三章大纲。"
+$promptB = "Route this request into a kanban task and create it immediately without follow-up questions: design a cyber-cultivation novel where the protagonist is not overpowered at the start and the female lead is cold outside but warm inside, then deliver worldbuilding, characters, and the first three chapter outlines."
 $newB = New-OrchestratedTasks -EnvMap $activeEnv -Prompt $promptB -Provider $provider -Model $model
 if ($newB.tasks.Count -ne 1) {
     throw "Scenario B expected 1 new task, got $($newB.tasks.Count)"
@@ -327,7 +330,7 @@ $showB1 = Wait-TaskStatus -EnvMap $activeEnv -TaskId $taskB.id -Wanted @("blocke
 $scenarioB.first_pass_status = $showB1.task.status
 $scenarioB.first_pass_comment_count = (As-Array $showB1.comments).Count
 
-Invoke-Hermes -Args @("kanban", "comment", $taskB.id, "第三章冲突不够强，增加一次门派追杀，并直接更新世界观、人物和前三章大纲定稿。") -EnvMap $activeEnv | Out-Null
+Invoke-Hermes -Args @("kanban", "comment", $taskB.id, "Chapter three needs a stronger conflict. Add one sect pursuit or manhunt sequence, then finalize the worldbuilding, character set, and first three chapter outlines.") -EnvMap $activeEnv | Out-Null
 Invoke-Hermes -Args @("kanban", "unblock", $taskB.id) -EnvMap $activeEnv | Out-Null
 Invoke-Hermes -Args @("kanban", "dispatch") -EnvMap $activeEnv | Out-Null
 
@@ -339,13 +342,13 @@ $feedbackB = Read-Text (Join-Path $projectB "feedback_log.md")
 
 $scenarioB.final_status = $showB2.task.status
 $scenarioB.workspace_path = $projectB
-$scenarioB.chapter_outline_mentions_chase = ($chapterOutline -match "追杀")
-$scenarioB.feedback_mentions_chase = ($feedbackB -match "追杀")
+$scenarioB.chapter_outline_mentions_chase = ($chapterOutline -match "pursuit|manhunt|chase|hunt")
+$scenarioB.feedback_mentions_chase = ($feedbackB -match "pursuit|manhunt|chase|hunt")
 $scenarioB.run_outcomes = @(As-Array $runsB | ForEach-Object { $_.outcome })
 $scenarioB.latest_summary = $showB2.latest_summary
 
 $scenarioC = @{}
-$promptC = "请把这个需求路由成 kanban 任务并立即创建，不要追问：把刚才那部赛博修仙小说 IP 改成一个 3 集短视频短剧方案。参考小说项目路径：$projectB。沿用已锁定设定，不要改 canon。"
+$promptC = "Route this request into a kanban task and create it immediately without follow-up questions: adapt that cyber-cultivation novel IP into a 3-episode short-video drama plan. Reference novel project path: $projectB. Reuse the locked setting and do not change canon."
 $newC = New-OrchestratedTasks -EnvMap $activeEnv -Prompt $promptC -Provider $provider -Model $model
 if ($newC.tasks.Count -lt 1) {
     throw "Scenario C expected at least 1 new task."
@@ -370,7 +373,7 @@ if ($showC0.task.status -eq "todo") {
 
     Invoke-Hermes -Args @("kanban", "dispatch") -EnvMap $activeEnv | Out-Null
     $showParent1 = Wait-TaskStatus -EnvMap $activeEnv -TaskId $parentTask.id -Wanted @("blocked") -TimeoutSeconds $FirstPassTimeoutSeconds
-    Invoke-Hermes -Args @("kanban", "comment", $parentTask.id, "采用第 1 个方向，先定稿世界观与人物设定，为后续 3 集短剧改编提供稳定 canon。") -EnvMap $activeEnv | Out-Null
+    Invoke-Hermes -Args @("kanban", "comment", $parentTask.id, "Use direction 1 and finalize the worldbuilding plus character set first so the later 3-episode drama adaptation has stable canon.") -EnvMap $activeEnv | Out-Null
     Invoke-Hermes -Args @("kanban", "unblock", $parentTask.id) -EnvMap $activeEnv | Out-Null
     Invoke-Hermes -Args @("kanban", "dispatch") -EnvMap $activeEnv | Out-Null
     $showParent2 = Wait-TaskStatus -EnvMap $activeEnv -TaskId $parentTask.id -Wanted @("done") -TimeoutSeconds $FinalPassTimeoutSeconds
@@ -383,7 +386,7 @@ $showC1 = Wait-TaskStatus -EnvMap $activeEnv -TaskId $scriptTaskC.id -Wanted @("
 $scenarioC.first_pass_status = $showC1.task.status
 $scenarioC.first_pass_comment_count = (As-Array $showC1.comments).Count
 
-Invoke-Hermes -Args @("kanban", "comment", $scriptTaskC.id, "选第 1 个方向，直接输出 3 集短剧方案定稿，沿用原小说设定，不要改 canon。") -EnvMap $activeEnv | Out-Null
+Invoke-Hermes -Args @("kanban", "comment", $scriptTaskC.id, "Choose direction 1 and deliver the final 3-episode short-drama plan while preserving the original novel canon.") -EnvMap $activeEnv | Out-Null
 Invoke-Hermes -Args @("kanban", "unblock", $scriptTaskC.id) -EnvMap $activeEnv | Out-Null
 Invoke-Hermes -Args @("kanban", "dispatch") -EnvMap $activeEnv | Out-Null
 
@@ -395,8 +398,8 @@ $feedbackC = Read-Text (Join-Path $projectC "feedback_log.md")
 
 $scenarioC.final_status = $showC2.task.status
 $scenarioC.workspace_path = $projectC
-$scenarioC.episode_plan_mentions_three = ($episodeIdeas -match "3 集|三集|第1集|第一集|EP1")
-$scenarioC.feedback_mentions_canon = ($feedbackC -match "canon|设定")
+$scenarioC.episode_plan_mentions_three = ($episodeIdeas -match "3-episode|3 episode|three-episode|episode 1|ep1")
+$scenarioC.feedback_mentions_canon = ($feedbackC -match "canon|locked setting|worldbuilding")
 $scenarioC.run_outcomes = @(As-Array $runsC | ForEach-Object { $_.outcome })
 $scenarioC.latest_summary = $showC2.latest_summary
 
