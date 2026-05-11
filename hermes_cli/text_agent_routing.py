@@ -162,6 +162,7 @@ def _task_body(
     workspace_path: str,
     project_name: str,
     dependency_note: str = "",
+    reference_paths: tuple[tuple[str, str], ...] = (),
 ) -> str:
     deliverable = (
         "direction options first, then a filming-ready script package once the direction is clear"
@@ -180,6 +181,24 @@ def _task_body(
         "- Respect the latest user instructions exactly.",
         "- Reuse and update the persistent workspace files for this project.",
         "- Block instead of guessing when project identity or direction is unclear.",
+        (
+            "- This is a non-trivial script task: first pass must stay bounded."
+            if assignee == "scriptwriter"
+            else "- Keep the first pass bounded to planning and requested novel scope."
+        ),
+        (
+            "- Before any full episode draft, write 2-3 direction options into "
+            "a kanban comment and then block for user selection or adjustment "
+            "unless the latest task comments already lock the direction."
+            if assignee == "scriptwriter"
+            else "- Do not expand beyond the requested chapter, outline, or planning scope."
+        ),
+        (
+            "- Until the direction is locked, do not draft full episode files "
+            "under scripts/ except lightweight scaffolding such as README placeholders."
+            if assignee == "scriptwriter"
+            else "- Until the direction is locked, do not finalize the full worldbuilding, character, plot-outline, or chapter-outline package beyond lightweight scaffolding and brief notes."
+        ),
         "",
         "Deliverable Format:",
         f"- {deliverable}",
@@ -190,6 +209,15 @@ def _task_body(
         "Project:",
         f"- {project_name}",
     ]
+    if assignee != "scriptwriter":
+        lines.insert(
+            lines.index("Deliverable Format:") - 1,
+            "- Before any long setting writeup, outline expansion, or chapter prose, write the working plan into a kanban comment and then block for user confirmation unless the latest task comments already lock the direction.",
+        )
+    if reference_paths:
+        lines.extend(["", "Reference Project Paths:"])
+        for label, path in reference_paths:
+            lines.append(f"- {label}: {path}")
     if dependency_note:
         lines.extend(["", "Dependency Note:", dependency_note])
     return "\n".join(lines).rstrip()
@@ -287,10 +315,15 @@ def plan_text_request(
                     assignee="scriptwriter",
                     workspace_path=script_project["project_path"],
                     project_name=effective_project_name,
+                    reference_paths=(
+                        ("paired novelist project", novel_project["project_path"]),
+                    ),
                     dependency_note=(
-                        "This task depends on the paired novelist task when the "
-                        "adaptation needs the novel-side worldbuilding, characters, "
-                        "or outline first."
+                        "This task depends on the paired novelist task. Read the "
+                        "paired novelist project summaries first, especially "
+                        "01_worldbuilding.md, 02_characters.md, 03_plot_outline.md, "
+                        "04_chapter_outline.md, 05_style_guide.md, and the latest "
+                        "feedback_log.md, then adapt without changing locked canon."
                     ),
                 ),
                 workspace_path=script_project["project_path"],

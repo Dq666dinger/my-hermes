@@ -165,6 +165,10 @@ def run_oneshot(
         sys.stderr.write(toolsets_error)
         return 2
     use_config_toolsets = _normalize_toolsets(toolsets) is None
+    if explicit_toolsets:
+        os.environ["HERMES_ACTIVE_TOOLSETS"] = ",".join(explicit_toolsets)
+    else:
+        os.environ.pop("HERMES_ACTIVE_TOOLSETS", None)
 
     # Auto-approve any shell / tool approvals.  Non-interactive by
     # definition — a prompt would hang forever.

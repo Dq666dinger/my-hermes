@@ -39,6 +39,16 @@ logger = logging.getLogger(__name__)
 # Gating
 # ---------------------------------------------------------------------------
 
+def _runtime_toolsets_from_env() -> set[str]:
+    raw = os.environ.get("HERMES_ACTIVE_TOOLSETS", "").strip()
+    if not raw:
+        return set()
+    return {
+        part.strip().lower()
+        for part in raw.split(",")
+        if part and part.strip()
+    }
+
 def _check_kanban_mode() -> bool:
     """Tools are available when:
 
@@ -52,6 +62,8 @@ def _check_kanban_mode() -> bool:
     toolset enabled see all seven.
     """
     if os.environ.get("HERMES_KANBAN_TASK"):
+        return True
+    if "kanban" in _runtime_toolsets_from_env():
         return True
 
     # Check if the current profile has the kanban toolset enabled.
@@ -678,7 +690,11 @@ KANBAN_CREATE_SCHEMA = {
         "orchestrator workers to fan out — decompose work into child "
         "tasks with specific assignees, link them into a pipeline, "
         "then complete your own task. The dispatcher picks up the new "
-        "tasks on its next tick and spawns the assigned profiles."
+        "tasks on its next tick and spawns the assigned profiles. For "
+        "durable project work, do not stop at mentioning a path in the "
+        "body 鈥?also set `workspace_kind='dir'` and the absolute "
+        "`workspace_path` so the worker actually starts in that "
+        "persistent directory."
     ),
     "parameters": {
         "type": "object",
@@ -735,14 +751,19 @@ KANBAN_CREATE_SCHEMA = {
                 "description": (
                     "Workspace flavor: 'scratch' (fresh tmp dir, "
                     "default), 'dir' (shared directory, requires "
-                    "absolute workspace_path), 'worktree' (git worktree)."
+                    "absolute workspace_path), 'worktree' (git worktree). "
+                    "For HermesWorkspace-style durable text projects, "
+                    "orchestrators should usually choose 'dir'."
                 ),
             },
             "workspace_path": {
                 "type": "string",
                 "description": (
                     "Absolute path for 'dir' or 'worktree' workspace. "
-                    "Relative paths are rejected at dispatch."
+                    "Relative paths are rejected at dispatch. If your "
+                    "task body references a durable project directory, "
+                    "repeat that same path here; body text alone does "
+                    "not make the worker use it."
                 ),
             },
             "triage": {

@@ -72,13 +72,14 @@ If the user asks for a short-video storyboard, shot list, comedic short-drama pa
 9. Determine task type: new project, setting, outline, chapter, rewrite, polish, or continuation.
 10. Produce a writing plan first. Do not jump directly into long-form prose.
 11. For non-trivial kanban tasks, write the plan into a task comment and block for confirmation before long-form output, unless the latest comments already make the direction explicit.
-12. Before long prose generation, check the latest comments.
-13. Before any long model generation or multi-file update, send a heartbeat with the current stage.
-14. Output stage results.
-15. Update project files as needed.
-16. Self-check character consistency, world consistency, plot progression, and style consistency.
-17. Deliver the final result and leave the workspace in a reusable state for the next run.
-18. If the requested deliverable and workspace updates are finished, you must call `kanban_complete(...)` before ending the run. Writing files or leaving comments alone is not enough.
+12. Until the direction is locked by the latest task comments, do not finalize the full worldbuilding, character, plot-outline, or chapter-outline package, and do not draft chapter prose beyond lightweight scaffolding or brief notes.
+13. Before long prose generation, check the latest comments.
+14. Before any long model generation or multi-file update, send a heartbeat with the current stage.
+15. Output stage results.
+16. Update project files as needed.
+17. Self-check character consistency, world consistency, plot progression, and style consistency.
+18. Deliver the final result and leave the workspace in a reusable state for the next run.
+19. If the requested deliverable and workspace updates are finished, you must call `kanban_complete(...)` before ending the run. Writing files or leaving comments alone is not enough.
 
 ## Continuation Clarification
 

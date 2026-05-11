@@ -17,8 +17,21 @@ from tools.registry import registry, tool_error, tool_result
 logger = logging.getLogger(__name__)
 
 
+def _runtime_toolsets_from_env() -> set[str]:
+    raw = os.environ.get("HERMES_ACTIVE_TOOLSETS", "").strip()
+    if not raw:
+        return set()
+    return {
+        part.strip().lower()
+        for part in raw.split(",")
+        if part and part.strip()
+    }
+
+
 def _check_text_agent_workspace_mode() -> bool:
     if os.environ.get("HERMES_KANBAN_TASK"):
+        return True
+    if "kanban" in _runtime_toolsets_from_env():
         return True
     try:
         from hermes_cli.config import load_config

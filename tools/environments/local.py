@@ -18,6 +18,13 @@ _IS_WINDOWS = platform.system() == "Windows"
 logger = logging.getLogger(__name__)
 
 
+def _windows_git_bash_to_native_path(path: str) -> str:
+    """Translate Git Bash ``/c/...`` paths to native Windows form."""
+    if not (_IS_WINDOWS and path and re.match(r"^/[a-zA-Z]/", path)):
+        return path
+    return path[1].upper() + ":" + path[2:].replace("/", "\\")
+
+
 def _resolve_safe_cwd(cwd: str) -> str:
     """Return ``cwd`` if it exists as a directory, else the nearest existing
     ancestor.  Falls back to ``tempfile.gettempdir()`` only if walking up the
@@ -30,6 +37,7 @@ def _resolve_safe_cwd(cwd: str) -> str:
     raises ``FileNotFoundError`` before bash starts, wedging every subsequent
     terminal call until the gateway restarts.
     """
+    cwd = _windows_git_bash_to_native_path(cwd)
     if cwd and os.path.isdir(cwd):
         return cwd
     parent = os.path.dirname(cwd) if cwd else ""
@@ -175,6 +183,45 @@ def _sanitize_subprocess_env(base_env: dict | None, extra_env: dict | None = Non
     return sanitized
 
 
+def _is_windows_wsl_launcher(path: str | None) -> bool:
+    """Return True when *path* is Windows' legacy WSL launcher ``bash.exe``."""
+    if not path:
+        return False
+    try:
+        normalized = os.path.normcase(os.path.abspath(path))
+    except Exception:
+        normalized = os.path.normcase(path)
+
+    windir = os.environ.get("WINDIR", r"C:\Windows")
+    launcher_paths = {
+        os.path.normcase(os.path.join(windir, "System32", "bash.exe")),
+        os.path.normcase(os.path.join(windir, "Sysnative", "bash.exe")),
+    }
+    return normalized in launcher_paths
+
+
+def _git_bash_candidates_from_git_exe(git_exe: str | None) -> list[str]:
+    """Return plausible Git Bash paths derived from a resolved ``git.exe``."""
+    if not git_exe:
+        return []
+
+    candidates: list[str] = []
+    try:
+        git_path = Path(git_exe)
+    except Exception:
+        return candidates
+
+    for base in (git_path.parent, git_path.parent.parent):
+        if not base:
+            continue
+        for rel in ("bin/bash.exe", "usr/bin/bash.exe"):
+            candidate = base / rel
+            candidate_str = str(candidate)
+            if candidate_str not in candidates:
+                candidates.append(candidate_str)
+    return candidates
+
+
 def _find_bash() -> str:
     """Find bash for command execution."""
     if not _IS_WINDOWS:
@@ -209,9 +256,10 @@ def _find_bash() -> str:
             if os.path.isfile(candidate):
                 return candidate
 
-    found = shutil.which("bash")
-    if found:
-        return found
+    git_found = shutil.which("git")
+    for candidate in _git_bash_candidates_from_git_exe(git_found):
+        if os.path.isfile(candidate):
+            return candidate
 
     for candidate in (
         os.path.join(os.environ.get("ProgramFiles", r"C:\Program Files"), "Git", "bin", "bash.exe"),
@@ -220,6 +268,10 @@ def _find_bash() -> str:
     ):
         if candidate and os.path.isfile(candidate):
             return candidate
+
+    found = shutil.which("bash")
+    if found and not _is_windows_wsl_launcher(found):
+        return found
 
     raise RuntimeError(
         "Git Bash not found. Hermes Agent requires Git for Windows on Windows.\n"
@@ -445,7 +497,8 @@ class LocalEnvironment(BaseEnvironment):
         # the cwd before bash starts, wedging every subsequent call until the
         # gateway restarts.
         safe_cwd = _resolve_safe_cwd(self.cwd)
-        if safe_cwd != self.cwd:
+        native_cwd = _windows_git_bash_to_native_path(self.cwd)
+        if safe_cwd != native_cwd:
             logger.warning(
                 "LocalEnvironment cwd %r is missing on disk; "
                 "falling back to %r so terminal commands keep working.",
@@ -454,11 +507,7 @@ class LocalEnvironment(BaseEnvironment):
             )
             self.cwd = safe_cwd
 
-        # On Windows, self.cwd may be a Git Bash-style path (/c/Users/...)
-        # from pwd output. subprocess.Popen needs a native Windows path.
-        _popen_cwd = self.cwd
-        if _IS_WINDOWS and _popen_cwd and re.match(r'^/[a-zA-Z]/', _popen_cwd):
-            _popen_cwd = _popen_cwd[1].upper() + ':' + _popen_cwd[2:].replace('/', '\\')
+        _popen_cwd = safe_cwd
 
         proc = subprocess.Popen(
             args,
