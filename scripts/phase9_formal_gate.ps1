@@ -23,6 +23,49 @@ function Get-ProviderValue {
     return [Environment]::GetEnvironmentVariable($Name, "Machine")
 }
 
+function Quote-WindowsArgument {
+    param([string]$Value)
+
+    if ($null -eq $Value) {
+        return '""'
+    }
+
+    if ($Value -notmatch '[\s"]') {
+        return $Value
+    }
+
+    $builder = New-Object System.Text.StringBuilder
+    [void]$builder.Append('"')
+
+    $backslashCount = 0
+    foreach ($char in $Value.ToCharArray()) {
+        if ($char -eq '\') {
+            $backslashCount++
+            continue
+        }
+
+        if ($char -eq '"') {
+            [void]$builder.Append(('\' * ($backslashCount * 2 + 1)))
+            [void]$builder.Append('"')
+            $backslashCount = 0
+            continue
+        }
+
+        if ($backslashCount -gt 0) {
+            [void]$builder.Append(('\' * $backslashCount))
+            $backslashCount = 0
+        }
+        [void]$builder.Append($char)
+    }
+
+    if ($backslashCount -gt 0) {
+        [void]$builder.Append(('\' * ($backslashCount * 2)))
+    }
+
+    [void]$builder.Append('"')
+    return $builder.ToString()
+}
+
 function Invoke-Hermes {
     param(
         [string[]]$CliArgs,
@@ -46,9 +89,13 @@ function Invoke-Hermes {
     try {
         Write-Host (">> hermes " + ($CliArgs -join " ")) -ForegroundColor DarkGray
 
+        $argString = ((@("-m", "hermes_cli.main") + $CliArgs) | ForEach-Object {
+            Quote-WindowsArgument ([string]$_)
+        }) -join " "
+
         $proc = Start-Process `
             -FilePath $PythonExe `
-            -ArgumentList (@("-m", "hermes_cli.main") + $CliArgs) `
+            -ArgumentList $argString `
             -NoNewWindow `
             -Wait `
             -PassThru `
