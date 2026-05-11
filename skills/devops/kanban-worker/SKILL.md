@@ -17,7 +17,8 @@ metadata:
 
 1. Call `kanban_show()` immediately and trust its task context over guesses.
 2. Work inside `$HERMES_KANBAN_WORKSPACE` unless the task explicitly says otherwise.
-3. Use `kanban_heartbeat(note=...)` only for genuinely long work.
+3. Use `kanban_heartbeat(note=...)` for genuinely long work.
+If you are still orienting after about 30 seconds because the workspace is large, you are reading many files, or you are waiting on a model/tool response, send a heartbeat before continuing.
 4. Use `kanban_comment(...)` for extra context that should stay on the task thread.
 5. If you need a human decision, call `kanban_block(reason="...")` with one concrete question.
 6. When the requested work is actually done, call `kanban_complete(summary=..., metadata=...)`.
@@ -55,7 +56,14 @@ kanban_complete(
 - If `kanban_show()` reveals earlier failed runs, do not repeat the same path blindly.
 - If the task is ambiguous, missing source material, or waiting on a user choice, block instead of guessing.
 - If a tool call fails twice, explain the failure in a comment or block reason and stop retrying.
+- If a task repeatedly dies before completion, shrink the amount of context you load, resume from the files already written, and send earlier heartbeats.
 - If the task was already blocked, reassigned, or archived before you start, stop immediately.
+
+## Cost control
+
+- Prefer staged outputs over giant first drafts.
+- Reuse project summaries, outlines, and durable notes before loading more raw context.
+- Keep each run bounded to the deliverable the task actually requests.
 
 ## Do not
 
