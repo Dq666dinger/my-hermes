@@ -3755,7 +3755,7 @@ def _default_spawn(
     *,
     board: Optional[str] = None,
 ) -> Optional[int]:
-    """Fire-and-forget ``hermes -p <profile> chat -Q -q ...`` subprocess.
+    """Fire-and-forget ``python -m hermes_cli.main -p <profile> ...`` worker.
 
     Returns the spawned child's PID so the dispatcher can detect crashes
     before the claim TTL expires. The child's completion is still observed
@@ -3768,6 +3768,7 @@ def _default_spawn(
     from. Workers cannot accidentally see other boards.
     """
     import subprocess
+    import sys
     if not task.assignee:
         raise ValueError(f"task {task.id} has no assignee")
 
@@ -3816,7 +3817,9 @@ def _default_spawn(
     )
 
     cmd = [
-        "hermes",
+        sys.executable,
+        "-m",
+        "hermes_cli.main",
         "-p", profile_arg,
         # Auto-load the kanban-worker skill so every dispatched worker
         # has the pattern library (good summary/metadata shapes, retry
@@ -3875,8 +3878,8 @@ def _default_spawn(
     except FileNotFoundError:
         log_f.close()
         raise RuntimeError(
-            "`hermes` executable not found on PATH. "
-            "Install Hermes Agent or activate its venv before running the kanban dispatcher."
+            "Current Python executable is unavailable for kanban worker startup. "
+            "Activate the intended Hermes environment before running the kanban dispatcher."
         )
     # NOTE: we intentionally do NOT close log_f here — we want Popen's
     # child process to keep writing after this function returns.  The
