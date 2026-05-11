@@ -3821,6 +3821,7 @@ def _default_spawn(
         "-m",
         "hermes_cli.main",
         "-p", profile_arg,
+        "chat",
         # Auto-load the kanban-worker skill so every dispatched worker
         # has the pattern library (good summary/metadata shapes, retry
         # diagnostics, block-reason examples) in its context, even if
@@ -3847,7 +3848,6 @@ def _default_spawn(
         if runtime_provider:
             cmd.extend(["--provider", runtime_provider])
     cmd.extend([
-        "chat",
         # Background workers often run without a real interactive console on
         # Windows. Quiet mode suppresses prompt_toolkit-backed banners and
         # spinners so headless kanban workers can start safely.

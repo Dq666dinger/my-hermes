@@ -2616,6 +2616,8 @@ def test_default_spawn_auto_loads_kanban_worker_skill(kanban_home, monkeypatch):
 
     cmd = captured["cmd"]
     assert cmd[:3] == [sys.executable, "-m", "hermes_cli.main"], cmd
+    assert "chat" in cmd, cmd
+    assert cmd.index("--skills") > cmd.index("chat"), cmd
     assert "--skills" in cmd, f"spawn argv missing --skills: {cmd}"
     idx = cmd.index("--skills")
     assert cmd[idx + 1] == "kanban-worker", (
@@ -2653,9 +2655,12 @@ def test_default_spawn_uses_quiet_chat_mode_for_background_workers(kanban_home, 
 
     cmd = captured["cmd"]
     chat_idx = cmd.index("chat")
-    assert cmd[chat_idx + 1] == "-Q", cmd
-    assert cmd[chat_idx + 2] == "-q", cmd
-    assert cmd[chat_idx + 3] == f"work kanban task {tid}", cmd
+    assert cmd[chat_idx + 1] == "--skills", cmd
+    assert "kanban-worker" in cmd[chat_idx + 1:], cmd
+    assert "-Q" in cmd[chat_idx + 1:], cmd
+    quiet_idx = cmd.index("-Q")
+    assert cmd[quiet_idx + 1] == "-q", cmd
+    assert cmd[quiet_idx + 2] == f"work kanban task {tid}", cmd
 
 
 def test_default_spawn_inherits_runtime_provider_and_model_from_dispatcher_env(
@@ -2694,7 +2699,7 @@ def test_default_spawn_inherits_runtime_provider_and_model_from_dispatcher_env(
 
     cmd = captured["cmd"]
     chat_idx = cmd.index("chat")
-    assert cmd[chat_idx - 4:chat_idx] == [
+    assert cmd[chat_idx + 3:chat_idx + 7] == [
         "-m",
         "deepseek-v4-flash",
         "--provider",
@@ -2812,14 +2817,14 @@ def test_default_spawn_appends_per_task_skills(kanban_home, monkeypatch):
     assert skill_names[0] == "kanban-worker", skill_names
     assert "translation" in skill_names
     assert "github-code-review" in skill_names
-    # --skills must appear BEFORE the `chat` subcommand so argparse
-    # attaches them to the top-level parser, not the subcommand.
+    # For worker chat invocations, skills must be attached to the `chat`
+    # subcommand rather than the top-level parser.
     chat_idx = cmd.index("chat")
-    last_skills_idx = max(
+    first_skills_idx = min(
         i for i, tok in enumerate(cmd) if tok == "--skills"
     )
-    assert last_skills_idx < chat_idx, (
-        f"--skills must come before 'chat' in argv: {cmd}"
+    assert first_skills_idx > chat_idx, (
+        f"--skills must come after 'chat' in argv: {cmd}"
     )
 
 
