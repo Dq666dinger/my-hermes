@@ -152,3 +152,14 @@ def test_phase9_novelist_contract_blocks_broad_package_requests():
     assert "the first three chapter outlines" in contract
     assert "the first run must post 2-3 planning directions or framing options" in contract
     assert "Do not ship the full worldbuilding / characters / chapter-outline package in that first run." in contract
+
+
+def test_phase9_scriptwriter_contract_blocks_broad_adaptation_plan_requests():
+    contract = Path("plans/text_agent_profiles/scriptwriter.SOUL.md").read_text(
+        encoding="utf-8"
+    )
+
+    assert "Treat broad adaptation-plan requests as direction-unlocked" in contract
+    assert "adapt that cyber-cultivation novel IP into a 3-episode short-video drama plan" in contract
+    assert "requires 2-3 adaptation directions or episode-framing options" in contract
+    assert "before you write the full plan package" in contract

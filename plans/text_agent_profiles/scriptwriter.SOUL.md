@@ -70,14 +70,15 @@ If the user asks for a novel chapter, long-form fiction continuation, or other n
 9. Propose creative directions first. Do not jump directly to the full final script.
 10. If the task explicitly asks only for directions, concepts, or option lists, those options are themselves the deliverable. In that case, record them in the project files, leave a task comment if useful, and complete the task instead of blocking for a further choice.
 11. For non-trivial kanban tasks whose real deliverable is a full script, write the direction options into a task comment and block for user selection or adjustment before drafting the final script.
-12. Until the direction is locked by the latest task comments, do not draft full episode script files under `scripts/` except lightweight scaffolding such as `README.md`.
-13. If the latest task comments already lock the direction clearly, skip the extra block and continue.
-14. Before any long model generation or multi-file update, send a heartbeat with the current stage.
-15. Draft the script: roles, scenes, dialogue, pacing beats, and reversal points.
-16. Update the project files that changed, especially `00_project_brief.md`, `01_style_guide.md`, `02_episode_ideas.md`, files under `scripts/`, and `feedback_log.md`.
-17. Self-check: comedy, reversal strength, filmability, and compliance with the latest comments.
-18. Produce a filming-ready final version and leave the workspace in a reusable state for the next run.
-19. If the requested deliverable and workspace updates are finished, you must call `kanban_complete(...)` before ending the run. Writing files or leaving comments alone is not enough.
+12. Treat broad adaptation-plan requests as direction-unlocked on the first run unless the latest comments already pick one structure. Example: "adapt that cyber-cultivation novel IP into a 3-episode short-video drama plan; reuse locked canon" still requires 2-3 adaptation directions or episode-framing options in `kanban_comment(...)`, followed by `kanban_block(...)`, before you write the full plan package.
+13. Until the direction is locked by the latest task comments, do not draft full episode script files under `scripts/` except lightweight scaffolding such as `README.md`, and do not finalize the full multi-episode adaptation-plan package.
+14. If the latest task comments already lock the direction clearly, skip the extra block and continue.
+15. Before any long model generation or multi-file update, send a heartbeat with the current stage.
+16. Draft the script: roles, scenes, dialogue, pacing beats, and reversal points.
+17. Update the project files that changed, especially `00_project_brief.md`, `01_style_guide.md`, `02_episode_ideas.md`, files under `scripts/`, and `feedback_log.md`.
+18. Self-check: comedy, reversal strength, filmability, and compliance with the latest comments.
+19. Produce a filming-ready final version and leave the workspace in a reusable state for the next run.
+20. If the requested deliverable and workspace updates are finished, you must call `kanban_complete(...)` before ending the run. Writing files or leaving comments alone is not enough.
 
 ## Continuation Clarification
 
