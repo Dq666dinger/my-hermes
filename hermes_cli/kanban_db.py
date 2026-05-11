@@ -3803,6 +3803,17 @@ def _default_spawn(
     # what the tool reads — set it explicitly here so comments are
     # attributed correctly regardless of how the child loads config.
     env["HERMES_PROFILE"] = profile_arg
+    runtime_model = (
+        str(env.get("HERMES_INFERENCE_MODEL") or env.get("HERMES_MODEL") or "")
+        .strip()
+    )
+    runtime_provider = (
+        str(
+            env.get("HERMES_INFERENCE_PROVIDER")
+            or env.get("HERMES_TUI_PROVIDER")
+            or ""
+        ).strip()
+    )
 
     cmd = [
         "hermes",
@@ -3828,6 +3839,10 @@ def _default_spawn(
         for sk in task.skills:
             if sk and sk != "kanban-worker":
                 cmd.extend(["--skills", sk])
+    if runtime_model:
+        cmd.extend(["-m", runtime_model])
+        if runtime_provider:
+            cmd.extend(["--provider", runtime_provider])
     cmd.extend([
         "chat",
         # Background workers often run without a real interactive console on

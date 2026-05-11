@@ -2671,6 +2671,7 @@ def test_default_spawn_inherits_runtime_provider_and_model_from_dispatcher_env(
         pid = 2468
 
     def fake_popen(cmd, **kwargs):
+        captured["cmd"] = cmd
         captured["env"] = kwargs.get("env", {})
         return FakeProc()
 
@@ -2688,6 +2689,15 @@ def test_default_spawn_inherits_runtime_provider_and_model_from_dispatcher_env(
         kb._default_spawn(task, str(workspace))
     finally:
         conn.close()
+
+    cmd = captured["cmd"]
+    chat_idx = cmd.index("chat")
+    assert cmd[chat_idx - 4:chat_idx] == [
+        "-m",
+        "deepseek-v4-flash",
+        "--provider",
+        "deepseek",
+    ], cmd
 
     env = captured["env"]
     assert env.get("HERMES_INFERENCE_PROVIDER") == "deepseek"
