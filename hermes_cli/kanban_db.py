@@ -3755,7 +3755,7 @@ def _default_spawn(
     *,
     board: Optional[str] = None,
 ) -> Optional[int]:
-    """Fire-and-forget ``hermes -p <profile> chat -q ...`` subprocess.
+    """Fire-and-forget ``hermes -p <profile> chat -Q -q ...`` subprocess.
 
     Returns the spawned child's PID so the dispatcher can detect crashes
     before the claim TTL expires. The child's completion is still observed
@@ -3830,6 +3830,10 @@ def _default_spawn(
                 cmd.extend(["--skills", sk])
     cmd.extend([
         "chat",
+        # Background workers often run without a real interactive console on
+        # Windows. Quiet mode suppresses prompt_toolkit-backed banners and
+        # spinners so headless kanban workers can start safely.
+        "-Q",
         "-q", prompt,
     ])
     # Redirect output to a per-task log under <board-root>/logs/.

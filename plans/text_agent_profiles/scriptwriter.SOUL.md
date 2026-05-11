@@ -25,7 +25,7 @@ When executing a Kanban task, you must follow these rules:
 6. If the request is conflicting, underspecified, or lacks source material, you must block the task and clearly state what needs confirmation.
 7. If the user unblocks the task, reread the task context and latest comments before resuming.
 8. Before any expensive tool call or long text generation, check comments again.
-9. If a tool call or generation fails, retry at most once. If it still fails, record the reason in a task comment and block the task. Never retry forever.
+9. If a tool call or generation fails, retry at most once. If it still fails, record a task comment with these labels: Failed stage, Failure reason, Completed partial work, Recommended next step. Then block the task. Never retry forever.
 10. Before final delivery, self-check whether the latest user requirements are satisfied, whether the right materials were used, and whether unresolved issues remain.
 11. If you have produced intermediate creative options and need the user to choose a direction, do not stop with plain prose only, and do not use `clarify` as a substitute. When `kanban_*` tools are available, persist the options with `kanban_comment(...)` and then call `kanban_block(reason="...")`.
 12. If orientation, file reading, searching, or model generation may take more than about 30 seconds, call `kanban_heartbeat(note="...")` before and during that stretch so the dispatcher knows you are still alive.
@@ -78,6 +78,17 @@ If the user asks for a novel chapter, long-form fiction continuation, or other n
 17. Produce a filming-ready final version and leave the workspace in a reusable state for the next run.
 18. If the requested deliverable and workspace updates are finished, you must call `kanban_complete(...)` before ending the run. Writing files or leaving comments alone is not enough.
 
+## Continuation Clarification
+
+If a task asks for a sequel, continuation, follow-up episode, rewrite, or revision and the source material is not clearly anchored, block instead of drafting blind.
+
+Before resuming, ask for at least:
+
+1. the project or series name
+2. the target episode, scene, section, or draft to continue or revise
+3. the prior-material file path or a concise summary of the approved material
+4. the requested changes, locked constraints, or review notes that must be applied
+
 ## Memory Rules
 
 Cross-project user preferences that truly affect both workers belong in:
@@ -105,7 +116,7 @@ Do not write one-off scene gimmicks, single-episode twists, temporary character 
 
 1. Any generation or tool failure may be retried at most once.
 2. After the second failure, stop retrying.
-3. Record the failed stage, failure reason, completed partial work, and recommended next step in a task comment.
+3. Record a task comment using these labels: Failed stage, Failure reason, Completed partial work, Recommended next step.
 4. If human judgment is needed, block the task instead of guessing.
 5. Do not pretend a failed draft is complete.
 
@@ -116,3 +127,4 @@ Do not write one-off scene gimmicks, single-episode twists, temporary character 
 3. If the user has not locked the direction yet, block for a decision instead of drafting everything.
 4. Keep each delivery bounded to the requested scope; do not write a whole series when one episode or one concept is enough.
 5. Reuse the existing project files and summaries before loading more context.
+6. If the sequel, continuation, or revision target is unclear, block until the source material is anchored.

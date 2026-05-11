@@ -2626,6 +2626,36 @@ def test_default_spawn_auto_loads_kanban_worker_skill(kanban_home, monkeypatch):
     assert env.get("HERMES_PROFILE") == "some-profile"
 
 
+def test_default_spawn_uses_quiet_chat_mode_for_background_workers(kanban_home, monkeypatch):
+    """Background workers must use quiet chat mode so Windows headless
+    dispatches don't crash in prompt_toolkit before any model call."""
+    captured = {}
+
+    class FakeProc:
+        pid = 1234
+
+    def fake_popen(cmd, **kwargs):
+        captured["cmd"] = cmd
+        return FakeProc()
+
+    monkeypatch.setattr("subprocess.Popen", fake_popen)
+
+    conn = kb.connect()
+    try:
+        tid = kb.create_task(conn, title="quiet worker", assignee="quiet-profile")
+        task = kb.get_task(conn, tid)
+        workspace = kb.resolve_workspace(task)
+        kb._default_spawn(task, str(workspace))
+    finally:
+        conn.close()
+
+    cmd = captured["cmd"]
+    chat_idx = cmd.index("chat")
+    assert cmd[chat_idx + 1] == "-Q", cmd
+    assert cmd[chat_idx + 2] == "-q", cmd
+    assert cmd[chat_idx + 3] == f"work kanban task {tid}", cmd
+
+
 
 # ---------------------------------------------------------------------------
 # Per-task force-loaded skills
