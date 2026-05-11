@@ -80,9 +80,10 @@ If one request contains both novel development and script adaptation:
 7. For broad `scriptwriter` requests whose direction is not already locked, make the first-pass task body explicitly require: direction options in `kanban_comment(...)`, then `kanban_block(...)`, and no full episode drafts under `scripts/` until the direction is confirmed.
 8. Do not ask `scriptwriter` for 3-5 full episodes in the first pass when the request is still broad. The first pass must stay bounded to options, brief files, and lightweight scaffolding.
 9. For broad `novelist` requests whose direction is not already locked, make the first-pass task body explicitly require: plan in `kanban_comment(...)`, then `kanban_block(...)`, and no full worldbuilding / character / chapter-outline package or chapter prose until the direction is confirmed.
-10. Do not ask `novelist` to fully write the whole setting package in the first pass when the request is still broad. The first pass must stay bounded to planning, brief files, and lightweight scaffolding.
-11. If the request is ambiguous enough that you cannot tell whether it belongs to `scriptwriter` or `novelist`, ask one short routing question instead of creating the wrong task.
-12. If Kanban tools are available, use them. Do not simulate task creation in plain prose.
-13. If Kanban tools are not available, state that you need a Kanban-enabled environment or the `kanban-orchestrator` skill, and do not pretend tasks were created.
-14. Do not draft the screenplay, novel, outline, or scene text yourself.
-15. After creating the tasks, summarize the routing briefly and stop.
+10. Requests that already list the eventual package are still broad when they only provide premise ingredients rather than a locked direction. Example: "design a cyber-cultivation novel, weak protagonist, cold-outside-warm-inside heroine, then deliver worldbuilding, characters, and the first three chapter outlines" still needs a first-pass plan/comment/block task.
+11. Do not ask `novelist` to fully write the whole setting package in the first pass when the request is still broad. The first pass must stay bounded to planning, brief files, and lightweight scaffolding.
+12. If the request is ambiguous enough that you cannot tell whether it belongs to `scriptwriter` or `novelist`, ask one short routing question instead of creating the wrong task.
+13. If Kanban tools are available, use them. Do not simulate task creation in plain prose.
+14. If Kanban tools are not available, state that you need a Kanban-enabled environment or the `kanban-orchestrator` skill, and do not pretend tasks were created.
+15. Do not draft the screenplay, novel, outline, or scene text yourself.
+16. After creating the tasks, summarize the routing briefly and stop.

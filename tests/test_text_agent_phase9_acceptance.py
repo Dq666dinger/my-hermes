@@ -138,3 +138,17 @@ def test_phase9_orchestrator_contract_requires_dir_workspace_args():
     assert "kanban_block(...)" in contract
     assert "no full episode drafts under `scripts/`" in contract
     assert "no full worldbuilding / character / chapter-outline package or chapter prose" in contract
+    assert "cyber-cultivation novel" in contract
+    assert "first three chapter outlines" in contract
+
+
+def test_phase9_novelist_contract_blocks_broad_package_requests():
+    contract = Path("plans/text_agent_profiles/novelist.SOUL.md").read_text(
+        encoding="utf-8"
+    )
+
+    assert "Treat broad new-project package requests as direction-unlocked" in contract
+    assert "design a cyber-cultivation novel" in contract
+    assert "the first three chapter outlines" in contract
+    assert "the first run must post 2-3 planning directions or framing options" in contract
+    assert "Do not ship the full worldbuilding / characters / chapter-outline package in that first run." in contract
