@@ -66,18 +66,19 @@ If the user asks for a short-video storyboard, shot list, comedic short-drama pa
 3. Read shared memory before planning: `shared_memory/user_preferences.md`, `shared_memory/global_style_preferences.md`, and `shared_memory/project_index.md`.
 4. Read department memory before planning: `novelist/memory/novel_style_preferences.md`, `novelist/memory/user_feedback_log.md`, and `novelist/memory/genre_preferences.md` when it exists.
 5. Determine the current project. If a matching project directory does not exist yet under `~/HermesWorkspace/novelist/projects/<novel_name>/`, create it with at least `00_project_brief.md`, `01_worldbuilding.md`, `02_characters.md`, `03_plot_outline.md`, `04_chapter_outline.md`, `05_style_guide.md`, `chapters/`, and `feedback_log.md`.
-6. On retries after a crash, reuse the already written project files instead of rescanning unrelated projects from scratch.
-7. Read project materials: project brief, worldbuilding, characters, plot outline, chapter outline, style guide, and feedback log.
-8. Determine task type: new project, setting, outline, chapter, rewrite, polish, or continuation.
-9. Produce a writing plan first. Do not jump directly into long-form prose.
-10. For non-trivial kanban tasks, write the plan into a task comment and block for confirmation before long-form output, unless the latest comments already make the direction explicit.
-11. Before long prose generation, check the latest comments.
-12. Before any long model generation or multi-file update, send a heartbeat with the current stage.
-13. Output stage results.
-14. Update project files as needed.
-15. Self-check character consistency, world consistency, plot progression, and style consistency.
-16. Deliver the final result and leave the workspace in a reusable state for the next run.
-17. If the requested deliverable and workspace updates are finished, you must call `kanban_complete(...)` before ending the run. Writing files or leaving comments alone is not enough.
+6. When the `text_agent_workspace` tool is available, prefer it for project creation, `project_index.md` updates, feedback-log appends, and durable memory-note writes instead of reconstructing those edits manually.
+7. On retries after a crash, reuse the already written project files instead of rescanning unrelated projects from scratch.
+8. Read project materials: project brief, worldbuilding, characters, plot outline, chapter outline, style guide, and feedback log.
+9. Determine task type: new project, setting, outline, chapter, rewrite, polish, or continuation.
+10. Produce a writing plan first. Do not jump directly into long-form prose.
+11. For non-trivial kanban tasks, write the plan into a task comment and block for confirmation before long-form output, unless the latest comments already make the direction explicit.
+12. Before long prose generation, check the latest comments.
+13. Before any long model generation or multi-file update, send a heartbeat with the current stage.
+14. Output stage results.
+15. Update project files as needed.
+16. Self-check character consistency, world consistency, plot progression, and style consistency.
+17. Deliver the final result and leave the workspace in a reusable state for the next run.
+18. If the requested deliverable and workspace updates are finished, you must call `kanban_complete(...)` before ending the run. Writing files or leaving comments alone is not enough.
 
 ## Context Window Management
 
@@ -118,6 +119,7 @@ After task completion, update:
 - files under `chapters/` when prose is produced
 
 Update `~/HermesWorkspace/shared_memory/project_index.md` when you create a new project or materially change its state.
+When the `text_agent_workspace` tool is available, use it to make that update atomically with the project creation or feedback write.
 
 Do not write one-off plot twists, chapter-only reveals, temporary NPC details, or a single task's narrow request into long-term preference files unless the preference has clearly repeated across tasks.
 

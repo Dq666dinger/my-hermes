@@ -64,18 +64,19 @@ If the user asks for a novel chapter, long-form fiction continuation, or other n
 3. Read shared memory before planning: `shared_memory/user_preferences.md`, `shared_memory/global_style_preferences.md`, and `shared_memory/project_index.md`.
 4. Read department memory before planning: `scriptwriter/memory/script_style_preferences.md`, `scriptwriter/memory/user_feedback_log.md`, and `scriptwriter/memory/reusable_structures.md` when it exists.
 5. Determine the current project. If a matching project directory does not exist yet under `~/HermesWorkspace/scriptwriter/projects/<project_name>/`, create it with at least `00_project_brief.md`, `01_style_guide.md`, `02_episode_ideas.md`, `scripts/`, and `feedback_log.md`.
-6. On retries after a crash, reuse the already written project files instead of rescanning unrelated projects from scratch.
-7. Restate the request: identify genre, setting, characters, tone, constraints, and forbidden elements.
-8. Propose creative directions first. Do not jump directly to the full final script.
-9. If the task explicitly asks only for directions, concepts, or option lists, those options are themselves the deliverable. In that case, record them in the project files, leave a task comment if useful, and complete the task instead of blocking for a further choice.
-10. For non-trivial kanban tasks whose real deliverable is a full script, write the direction options into a task comment and block for user selection or adjustment before drafting the final script.
-11. If the latest task comments already lock the direction clearly, skip the extra block and continue.
-12. Before any long model generation or multi-file update, send a heartbeat with the current stage.
-13. Draft the script: roles, scenes, dialogue, pacing beats, and reversal points.
-14. Update the project files that changed, especially `00_project_brief.md`, `01_style_guide.md`, `02_episode_ideas.md`, files under `scripts/`, and `feedback_log.md`.
-15. Self-check: comedy, reversal strength, filmability, and compliance with the latest comments.
-16. Produce a filming-ready final version and leave the workspace in a reusable state for the next run.
-17. If the requested deliverable and workspace updates are finished, you must call `kanban_complete(...)` before ending the run. Writing files or leaving comments alone is not enough.
+6. When the `text_agent_workspace` tool is available, prefer it for project creation, `project_index.md` updates, feedback-log appends, and durable memory-note writes instead of reconstructing those edits manually.
+7. On retries after a crash, reuse the already written project files instead of rescanning unrelated projects from scratch.
+8. Restate the request: identify genre, setting, characters, tone, constraints, and forbidden elements.
+9. Propose creative directions first. Do not jump directly to the full final script.
+10. If the task explicitly asks only for directions, concepts, or option lists, those options are themselves the deliverable. In that case, record them in the project files, leave a task comment if useful, and complete the task instead of blocking for a further choice.
+11. For non-trivial kanban tasks whose real deliverable is a full script, write the direction options into a task comment and block for user selection or adjustment before drafting the final script.
+12. If the latest task comments already lock the direction clearly, skip the extra block and continue.
+13. Before any long model generation or multi-file update, send a heartbeat with the current stage.
+14. Draft the script: roles, scenes, dialogue, pacing beats, and reversal points.
+15. Update the project files that changed, especially `00_project_brief.md`, `01_style_guide.md`, `02_episode_ideas.md`, files under `scripts/`, and `feedback_log.md`.
+16. Self-check: comedy, reversal strength, filmability, and compliance with the latest comments.
+17. Produce a filming-ready final version and leave the workspace in a reusable state for the next run.
+18. If the requested deliverable and workspace updates are finished, you must call `kanban_complete(...)` before ending the run. Writing files or leaving comments alone is not enough.
 
 ## Memory Rules
 
@@ -96,6 +97,7 @@ Project-level facts belong in:
 - deliverable files under `~/HermesWorkspace/scriptwriter/projects/<project_name>/scripts/`
 
 Update `~/HermesWorkspace/shared_memory/project_index.md` when you create a new project or materially change its state.
+When the `text_agent_workspace` tool is available, use it to make that update atomically with the project creation or feedback write.
 
 Do not write one-off scene gimmicks, single-episode twists, temporary character names, or a single comment's short-lived direction into long-term preference files unless the user has repeated that preference across tasks.
 

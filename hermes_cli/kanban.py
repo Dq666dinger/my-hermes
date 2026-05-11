@@ -24,6 +24,12 @@ from pathlib import Path
 from typing import Any, Optional
 
 from hermes_cli import kanban_db as kb
+from hermes_cli.text_agent_routing import plan_text_request
+from hermes_cli.text_agent_workspace import (
+    bootstrap_summary as build_text_agent_workspace_summary,
+    bootstrap_workspace as bootstrap_text_agent_workspace,
+    format_bootstrap_summary as format_text_agent_workspace_summary,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -190,6 +196,67 @@ def build_parser(parent_subparsers: argparse._SubParsersAction) -> argparse.Argu
 
     # --- init ---
     sub.add_parser("init", help="Create kanban.db if missing (idempotent)")
+
+    # --- bootstrap-text-agent-workspace ---
+    p_bootstrap_workspace = sub.add_parser(
+        "bootstrap-text-agent-workspace",
+        help="Scaffold a persistent HermesWorkspace for scriptwriter + novelist flows",
+        description=(
+            "Create the shared-memory, department-memory, and project-template "
+            "structure used by the scriptwriter/novelist text-agent workflow."
+        ),
+    )
+    p_bootstrap_workspace.add_argument(
+        "--root",
+        default="~/HermesWorkspace",
+        help="Workspace root to create. Defaults to ~/HermesWorkspace.",
+    )
+    p_bootstrap_workspace.add_argument(
+        "--force",
+        action="store_true",
+        help="Overwrite template files if they already exist.",
+    )
+    p_bootstrap_workspace.add_argument(
+        "--json",
+        action="store_true",
+        help="Emit JSON output.",
+    )
+
+    p_route_text_request = sub.add_parser(
+        "route-text-request",
+        help="Route a text-production request into scriptwriter/novelist kanban task(s)",
+        description=(
+            "Analyze a text-production request, map it to scriptwriter, "
+            "novelist, or a two-step split flow, and optionally create the "
+            "kanban task set with persistent project workspaces."
+        ),
+    )
+    p_route_text_request.add_argument("request", help="Natural-language user request")
+    p_route_text_request.add_argument(
+        "--workspace-root",
+        default=None,
+        help="Workspace root to use for persistent text-agent projects.",
+    )
+    p_route_text_request.add_argument(
+        "--project-name",
+        default=None,
+        help="Optional explicit project name to use for workspace folders and project index.",
+    )
+    p_route_text_request.add_argument(
+        "--create",
+        action="store_true",
+        help="Create the routed kanban task(s) instead of only previewing the route.",
+    )
+    p_route_text_request.add_argument(
+        "--created-by",
+        default="orchestrator",
+        help="Author name recorded on created tasks (default: orchestrator).",
+    )
+    p_route_text_request.add_argument(
+        "--json",
+        action="store_true",
+        help="Emit JSON output.",
+    )
 
     # --- boards (new in v2: multi-project support) ---
     p_boards = sub.add_parser(
@@ -689,6 +756,8 @@ def kanban_command(args: argparse.Namespace) -> int:
 
     handlers = {
         "init":     _cmd_init,
+        "bootstrap-text-agent-workspace": _cmd_bootstrap_text_agent_workspace,
+        "route-text-request": _cmd_route_text_request,
         "create":   _cmd_create,
         "list":     _cmd_list,
         "ls":       _cmd_list,
@@ -986,6 +1055,82 @@ def _cmd_init(args: argparse.Namespace) -> int:
         "running gateway, tasks stay in 'ready' forever."
     )
     return 0
+
+
+def _cmd_bootstrap_text_agent_workspace(args: argparse.Namespace) -> int:
+    root = Path(args.root).expanduser().resolve()
+    created_dirs, written_files = bootstrap_text_agent_workspace(
+        root,
+        force=bool(getattr(args, "force", False)),
+    )
+    summary = build_text_agent_workspace_summary(
+        root,
+        created_dirs,
+        written_files,
+        force=bool(getattr(args, "force", False)),
+    )
+    if getattr(args, "json", False):
+        print(json.dumps(summary, indent=2, ensure_ascii=False))
+    else:
+        print(format_text_agent_workspace_summary(summary))
+    return 0
+
+
+def _cmd_route_text_request(args: argparse.Namespace) -> int:
+    plan = plan_text_request(
+        args.request,
+        workspace_root=getattr(args, "workspace_root", None),
+        project_name=getattr(args, "project_name", None),
+    )
+
+    created_tasks: list[dict[str, Any]] = []
+    if getattr(args, "create", False) and plan["tasks"]:
+        with kb.connect() as conn:
+            parent_ids: list[str] = []
+            for idx, task in enumerate(plan["tasks"]):
+                parents = tuple(parent_ids[-1:]) if plan["route"] == "split" and idx == 1 else ()
+                task_id = kb.create_task(
+                    conn,
+                    title=task["title"],
+                    body=task["body"],
+                    assignee=task["assignee"],
+                    created_by=getattr(args, "created_by", None) or _profile_author(),
+                    workspace_kind="dir",
+                    workspace_path=task["workspace_path"],
+                    parents=parents,
+                )
+                created_tasks.append(
+                    {
+                        "task_id": task_id,
+                        "assignee": task["assignee"],
+                        "title": task["title"],
+                        "workspace_path": task["workspace_path"],
+                        "parents": list(parents),
+                    }
+                )
+                if idx == 0:
+                    parent_ids.append(task_id)
+
+    payload = {
+        **plan,
+        "created": bool(created_tasks),
+        "created_tasks": created_tasks,
+    }
+    if getattr(args, "json", False):
+        print(json.dumps(payload, indent=2, ensure_ascii=False))
+        return 1 if plan["route"] == "ambiguous" and getattr(args, "create", False) else 0
+
+    print(f"Route: {plan['route']}")
+    print(f"Workspace root: {plan['workspace_root']}")
+    print(f"Project name: {plan['project_name']}")
+    if plan["clarification"]:
+        print(plan["clarification"])
+    for task in plan["tasks"]:
+        print(f"- {task['assignee']}: {task['title']}")
+        print(f"  workspace: {task['workspace_path']}")
+    for task in created_tasks:
+        print(f"Created {task['task_id']} ({task['assignee']})")
+    return 1 if plan["route"] == "ambiguous" and getattr(args, "create", False) else 0
 
 
 def _cmd_heartbeat(args: argparse.Namespace) -> int:
@@ -2150,6 +2295,9 @@ Common subcommands:
   `assign <id> <profile>`  Reassign
   `boards list`         Show all boards
   `assignees`           Known profiles + counts
+  `bootstrap-text-agent-workspace`
+                        Scaffold HermesWorkspace memory + project templates
+  `route-text-request`  Preview or create routed text-agent task sets
   `context <id>`        Full worker-context dump
   `runs <id>`           Attempt history
   `log <id>`            Worker log
@@ -2211,6 +2359,17 @@ def run_slash(rest: str) -> str:
         body = err or out
         return f"⚠ /kanban usage error\n{body}" if body else "⚠ /kanban usage error"
     except argparse.ArgumentError as exc:
+        usage = ""
+        if tokens:
+            for _action in kanban_parser._actions:
+                if not isinstance(_action, argparse._SubParsersAction):
+                    continue
+                _choice = _action.choices.get(tokens[0])
+                if _choice is not None:
+                    usage = _choice.format_usage().strip()
+                    break
+        if usage:
+            return f"⚠ /kanban usage error\n{usage}\n{exc}"
         return f"⚠ /kanban usage error: {exc}"
 
     with contextlib.redirect_stdout(buf_out), contextlib.redirect_stderr(buf_err):

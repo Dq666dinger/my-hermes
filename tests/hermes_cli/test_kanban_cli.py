@@ -119,6 +119,87 @@ def test_run_slash_json_output(kanban_home):
     assert payload["status"] == "ready"
 
 
+def test_run_slash_bootstrap_text_agent_workspace_json(kanban_home, tmp_path):
+    root = tmp_path / "HermesWorkspace"
+    out = kc.run_slash(
+        f"bootstrap-text-agent-workspace --root '{root}' --json"
+    )
+    payload = json.loads(out)
+    assert payload["root"] == str(root.resolve())
+    assert payload["created_directory_count"] >= 5
+    assert payload["written_file_count"] >= 17
+    assert (root / "shared_memory" / "user_preferences.md").exists()
+    assert (
+        root
+        / "scriptwriter"
+        / "projects"
+        / "_template"
+        / "scripts"
+        / "README.md"
+    ).exists()
+    assert (
+        root
+        / "novelist"
+        / "projects"
+        / "_template"
+        / "chapters"
+        / "README.md"
+    ).exists()
+
+
+def test_run_slash_bootstrap_text_agent_workspace_preserves_then_force_overwrites(
+    kanban_home,
+    tmp_path,
+):
+    root = tmp_path / "HermesWorkspace"
+    kc.run_slash(f"bootstrap-text-agent-workspace --root '{root}'")
+    target = root / "shared_memory" / "user_preferences.md"
+    target.write_text("custom\n", encoding="utf-8")
+
+    kc.run_slash(f"bootstrap-text-agent-workspace --root '{root}'")
+    assert target.read_text(encoding="utf-8") == "custom\n"
+
+    kc.run_slash(f"bootstrap-text-agent-workspace --root '{root}' --force")
+    content = target.read_text(encoding="utf-8")
+    assert content.startswith("# User Preferences\n")
+    assert "custom" not in content
+
+
+def test_run_slash_route_text_request_preview_json(kanban_home, tmp_path):
+    root = tmp_path / "HermesWorkspace"
+    out = kc.run_slash(
+        "route-text-request "
+        "'帮我设计一本赛博修仙小说的世界观和前三章大纲' "
+        f"--workspace-root '{root}' --json"
+    )
+    payload = json.loads(out)
+    assert payload["route"] == "novelist"
+    assert len(payload["tasks"]) == 1
+    assert payload["tasks"][0]["assignee"] == "novelist"
+    assert (root / "novelist" / "projects").exists()
+
+
+def test_run_slash_route_text_request_create_split_flow(kanban_home, tmp_path):
+    root = tmp_path / "HermesWorkspace"
+    out = kc.run_slash(
+        "route-text-request "
+        "'我想做一个小说IP，先写世界观，再改成短视频短剧脚本。' "
+        f"--workspace-root '{root}' --create --json"
+    )
+    payload = json.loads(out)
+    assert payload["route"] == "split"
+    assert len(payload["created_tasks"]) == 2
+    first, second = payload["created_tasks"]
+    assert first["assignee"] == "novelist"
+    assert second["assignee"] == "scriptwriter"
+    assert second["parents"] == [first["task_id"]]
+
+    first_show = json.loads(kc.run_slash(f"show {first['task_id']} --json"))
+    second_show = json.loads(kc.run_slash(f"show {second['task_id']} --json"))
+    assert first_show["task"]["status"] == "ready"
+    assert second_show["task"]["status"] == "todo"
+
+
 def test_run_slash_dispatch_dry_run_counts(kanban_home):
     kc.run_slash("create 'a' --assignee alice")
     kc.run_slash("create 'b' --assignee bob")
@@ -197,6 +278,8 @@ def test_kanban_in_autocomplete_table():
 
     assert "/kanban" in COMMANDS
     subs = SUBCOMMANDS.get("/kanban") or []
+    assert "bootstrap-text-agent-workspace" in subs
+    assert "route-text-request" in subs
     assert "create" in subs
     assert "dispatch" in subs
 

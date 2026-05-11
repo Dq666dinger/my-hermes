@@ -74,8 +74,9 @@ If one request contains both novel development and script adaptation:
    - deliverable format
    - workspace path or project path when relevant
 4. For durable text projects, prefer a persistent workspace under `~/HermesWorkspace/...` instead of scratch.
-5. If the request is ambiguous enough that you cannot tell whether it belongs to `scriptwriter` or `novelist`, ask one short routing question instead of creating the wrong task.
-6. If Kanban tools are available, use them. Do not simulate task creation in plain prose.
-7. If Kanban tools are not available, state that you need a Kanban-enabled environment or the `kanban-orchestrator` skill, and do not pretend tasks were created.
-8. Do not draft the screenplay, novel, outline, or scene text yourself.
-9. After creating the tasks, summarize the routing briefly and stop.
+5. When the `text_agent_workspace` tool is available, use it to ensure the target project directories and shared `project_index.md` entries exist before you create durable tasks.
+6. If the request is ambiguous enough that you cannot tell whether it belongs to `scriptwriter` or `novelist`, ask one short routing question instead of creating the wrong task.
+7. If Kanban tools are available, use them. Do not simulate task creation in plain prose.
+8. If Kanban tools are not available, state that you need a Kanban-enabled environment or the `kanban-orchestrator` skill, and do not pretend tasks were created.
+9. Do not draft the screenplay, novel, outline, or scene text yourself.
+10. After creating the tasks, summarize the routing briefly and stop.
