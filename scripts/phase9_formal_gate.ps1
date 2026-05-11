@@ -25,7 +25,7 @@ function Get-ProviderValue {
 
 function Invoke-Hermes {
     param(
-        [string[]]$Args,
+        [string[]]$CliArgs,
         [hashtable]$EnvMap,
         [switch]$AllowFailure
     )
@@ -44,11 +44,11 @@ function Invoke-Hermes {
     $stderrPath = Join-Path ([System.IO.Path]::GetTempPath()) ("phase9_gate_" + [guid]::NewGuid().ToString("N") + "_stderr.txt")
 
     try {
-        Write-Host (">> hermes " + ($Args -join " ")) -ForegroundColor DarkGray
+        Write-Host (">> hermes " + ($CliArgs -join " ")) -ForegroundColor DarkGray
 
         $proc = Start-Process `
             -FilePath $PythonExe `
-            -ArgumentList (@("-m", "hermes_cli.main") + $Args) `
+            -ArgumentList (@("-m", "hermes_cli.main") + $CliArgs) `
             -NoNewWindow `
             -Wait `
             -PassThru `
@@ -79,7 +79,7 @@ function Invoke-Hermes {
     }
 
     if (-not $AllowFailure -and $code -ne 0) {
-        throw "hermes command failed ($code): $($Args -join ' ')`n$out"
+        throw "hermes command failed ($code): $($CliArgs -join ' ')`n$out"
     }
 
     return [pscustomobject]@{
@@ -103,7 +103,7 @@ function As-Array {
 function Get-Tasks {
     param([hashtable]$EnvMap)
 
-    $res = Invoke-Hermes -Args @("kanban", "list", "--json") -EnvMap $EnvMap
+    $res = Invoke-Hermes -CliArgs @("kanban", "list", "--json") -EnvMap $EnvMap
     if (-not $res.output) {
         return @()
     }
@@ -116,7 +116,7 @@ function Get-TaskShow {
         [string]$TaskId
     )
 
-    $res = Invoke-Hermes -Args @("kanban", "show", $TaskId, "--json") -EnvMap $EnvMap
+    $res = Invoke-Hermes -CliArgs @("kanban", "show", $TaskId, "--json") -EnvMap $EnvMap
     return $res.output | ConvertFrom-Json
 }
 
@@ -126,7 +126,7 @@ function Get-TaskRuns {
         [string]$TaskId
     )
 
-    $res = Invoke-Hermes -Args @("kanban", "runs", $TaskId, "--json") -EnvMap $EnvMap
+    $res = Invoke-Hermes -CliArgs @("kanban", "runs", $TaskId, "--json") -EnvMap $EnvMap
     if (-not $res.output) {
         return @()
     }
@@ -173,7 +173,7 @@ function New-OrchestratedTasks {
     }
 
     $res = Invoke-Hermes `
-        -Args @("-p", "orchestrator", "-z", $Prompt, "--provider", $Provider, "-m", $Model, "--toolsets", "kanban") `
+        -CliArgs @("-p", "orchestrator", "-z", $Prompt, "--provider", $Provider, "-m", $Model, "--toolsets", "kanban") `
         -EnvMap $EnvMap
 
     $after = Get-Tasks -EnvMap $EnvMap
@@ -222,15 +222,15 @@ $baseEnv = @{
 }
 
 foreach ($profile in @("orchestrator", "scriptwriter", "novelist")) {
-    Invoke-Hermes -Args @("profile", "create", $profile, "--no-alias") -EnvMap $baseEnv | Out-Null
+    Invoke-Hermes -CliArgs @("profile", "create", $profile, "--no-alias") -EnvMap $baseEnv | Out-Null
     Copy-Item `
         (Join-Path $RepoRoot "plans\text_agent_profiles\$profile.SOUL.md") `
         (Join-Path $hermesHome "profiles\$profile\SOUL.md") `
         -Force
 }
 
-Invoke-Hermes -Args @("kanban", "init") -EnvMap $baseEnv | Out-Null
-Invoke-Hermes -Args @("kanban", "bootstrap-text-agent-workspace", "--root", $workspace, "--json") -EnvMap $baseEnv | Out-Null
+Invoke-Hermes -CliArgs @("kanban", "init") -EnvMap $baseEnv | Out-Null
+Invoke-Hermes -CliArgs @("kanban", "bootstrap-text-agent-workspace", "--root", $workspace, "--json") -EnvMap $baseEnv | Out-Null
 
 $provider = $null
 $model = $null
@@ -246,7 +246,7 @@ if ($deepseekKey) {
     }
 
     $probe = Invoke-Hermes `
-        -Args @("-p", "orchestrator", "chat", "-Q", "-q", "Reply with your role name only.", "--provider", "deepseek", "-m", "deepseek-v4-flash") `
+        -CliArgs @("-p", "orchestrator", "chat", "-Q", "-q", "Reply with your role name only.", "--provider", "deepseek", "-m", "deepseek-v4-flash") `
         -EnvMap $envMap `
         -AllowFailure
 
@@ -268,7 +268,7 @@ if (-not $provider -and $xiaomiKey) {
     }
 
     $probe = Invoke-Hermes `
-        -Args @("-p", "orchestrator", "chat", "-Q", "-q", "Reply with your role name only.", "--provider", "xiaomi", "-m", "mimo-v2.5") `
+        -CliArgs @("-p", "orchestrator", "chat", "-Q", "-q", "Reply with your role name only.", "--provider", "xiaomi", "-m", "mimo-v2.5") `
         -EnvMap $envMap `
         -AllowFailure
 
@@ -295,7 +295,7 @@ if (-not $provider) {
 $identities = @{}
 foreach ($profile in @("orchestrator", "scriptwriter", "novelist")) {
     $res = Invoke-Hermes `
-        -Args @("-p", $profile, "chat", "-Q", "-q", "Reply with your role name only.", "--provider", $provider, "-m", $model) `
+        -CliArgs @("-p", $profile, "chat", "-Q", "-q", "Reply with your role name only.", "--provider", $provider, "-m", $model) `
         -EnvMap $activeEnv
     $identities[$profile] = $res.output
 }
@@ -311,14 +311,14 @@ $taskA = $newA.tasks[0]
 $scenarioA.created_task_id = $taskA.id
 $scenarioA.assignee = $taskA.assignee
 
-Invoke-Hermes -Args @("kanban", "dispatch") -EnvMap $activeEnv | Out-Null
+Invoke-Hermes -CliArgs @("kanban", "dispatch") -EnvMap $activeEnv | Out-Null
 $showA1 = Wait-TaskStatus -EnvMap $activeEnv -TaskId $taskA.id -Wanted @("blocked") -TimeoutSeconds $FirstPassTimeoutSeconds
 $scenarioA.first_pass_status = $showA1.task.status
 $scenarioA.first_pass_comment_count = (As-Array $showA1.comments).Count
 
-Invoke-Hermes -Args @("kanban", "comment", $taskA.id, "Choose direction 2, add a small uplifting ending, deliver a complete shoot-ready version, and update memory plus feedback.") -EnvMap $activeEnv | Out-Null
-Invoke-Hermes -Args @("kanban", "unblock", $taskA.id) -EnvMap $activeEnv | Out-Null
-Invoke-Hermes -Args @("kanban", "dispatch") -EnvMap $activeEnv | Out-Null
+Invoke-Hermes -CliArgs @("kanban", "comment", $taskA.id, "Choose direction 2, add a small uplifting ending, deliver a complete shoot-ready version, and update memory plus feedback.") -EnvMap $activeEnv | Out-Null
+Invoke-Hermes -CliArgs @("kanban", "unblock", $taskA.id) -EnvMap $activeEnv | Out-Null
+Invoke-Hermes -CliArgs @("kanban", "dispatch") -EnvMap $activeEnv | Out-Null
 
 $showA2 = Wait-TaskStatus -EnvMap $activeEnv -TaskId $taskA.id -Wanted @("done") -TimeoutSeconds $FinalPassTimeoutSeconds
 $runsA = Get-TaskRuns -EnvMap $activeEnv -TaskId $taskA.id
@@ -350,14 +350,14 @@ $taskB = $newB.tasks[0]
 $scenarioB.created_task_id = $taskB.id
 $scenarioB.assignee = $taskB.assignee
 
-Invoke-Hermes -Args @("kanban", "dispatch") -EnvMap $activeEnv | Out-Null
+Invoke-Hermes -CliArgs @("kanban", "dispatch") -EnvMap $activeEnv | Out-Null
 $showB1 = Wait-TaskStatus -EnvMap $activeEnv -TaskId $taskB.id -Wanted @("blocked") -TimeoutSeconds $FirstPassTimeoutSeconds
 $scenarioB.first_pass_status = $showB1.task.status
 $scenarioB.first_pass_comment_count = (As-Array $showB1.comments).Count
 
-Invoke-Hermes -Args @("kanban", "comment", $taskB.id, "Chapter three needs a stronger conflict. Add one sect pursuit or manhunt sequence, then finalize the worldbuilding, character set, and first three chapter outlines.") -EnvMap $activeEnv | Out-Null
-Invoke-Hermes -Args @("kanban", "unblock", $taskB.id) -EnvMap $activeEnv | Out-Null
-Invoke-Hermes -Args @("kanban", "dispatch") -EnvMap $activeEnv | Out-Null
+Invoke-Hermes -CliArgs @("kanban", "comment", $taskB.id, "Chapter three needs a stronger conflict. Add one sect pursuit or manhunt sequence, then finalize the worldbuilding, character set, and first three chapter outlines.") -EnvMap $activeEnv | Out-Null
+Invoke-Hermes -CliArgs @("kanban", "unblock", $taskB.id) -EnvMap $activeEnv | Out-Null
+Invoke-Hermes -CliArgs @("kanban", "dispatch") -EnvMap $activeEnv | Out-Null
 
 $showB2 = Wait-TaskStatus -EnvMap $activeEnv -TaskId $taskB.id -Wanted @("done") -TimeoutSeconds $FinalPassTimeoutSeconds
 $runsB = Get-TaskRuns -EnvMap $activeEnv -TaskId $taskB.id
@@ -396,24 +396,24 @@ if ($showC0.task.status -eq "todo") {
         throw "Scenario C scriptwriter task is todo without a visible novelist parent."
     }
 
-    Invoke-Hermes -Args @("kanban", "dispatch") -EnvMap $activeEnv | Out-Null
+    Invoke-Hermes -CliArgs @("kanban", "dispatch") -EnvMap $activeEnv | Out-Null
     $showParent1 = Wait-TaskStatus -EnvMap $activeEnv -TaskId $parentTask.id -Wanted @("blocked") -TimeoutSeconds $FirstPassTimeoutSeconds
-    Invoke-Hermes -Args @("kanban", "comment", $parentTask.id, "Use direction 1 and finalize the worldbuilding plus character set first so the later 3-episode drama adaptation has stable canon.") -EnvMap $activeEnv | Out-Null
-    Invoke-Hermes -Args @("kanban", "unblock", $parentTask.id) -EnvMap $activeEnv | Out-Null
-    Invoke-Hermes -Args @("kanban", "dispatch") -EnvMap $activeEnv | Out-Null
+    Invoke-Hermes -CliArgs @("kanban", "comment", $parentTask.id, "Use direction 1 and finalize the worldbuilding plus character set first so the later 3-episode drama adaptation has stable canon.") -EnvMap $activeEnv | Out-Null
+    Invoke-Hermes -CliArgs @("kanban", "unblock", $parentTask.id) -EnvMap $activeEnv | Out-Null
+    Invoke-Hermes -CliArgs @("kanban", "dispatch") -EnvMap $activeEnv | Out-Null
     $showParent2 = Wait-TaskStatus -EnvMap $activeEnv -TaskId $parentTask.id -Wanted @("done") -TimeoutSeconds $FinalPassTimeoutSeconds
     $scenarioC.parent_task_id = $parentTask.id
     $scenarioC.parent_final_status = $showParent2.task.status
 }
 
-Invoke-Hermes -Args @("kanban", "dispatch") -EnvMap $activeEnv | Out-Null
+Invoke-Hermes -CliArgs @("kanban", "dispatch") -EnvMap $activeEnv | Out-Null
 $showC1 = Wait-TaskStatus -EnvMap $activeEnv -TaskId $scriptTaskC.id -Wanted @("blocked") -TimeoutSeconds $FirstPassTimeoutSeconds
 $scenarioC.first_pass_status = $showC1.task.status
 $scenarioC.first_pass_comment_count = (As-Array $showC1.comments).Count
 
-Invoke-Hermes -Args @("kanban", "comment", $scriptTaskC.id, "Choose direction 1 and deliver the final 3-episode short-drama plan while preserving the original novel canon.") -EnvMap $activeEnv | Out-Null
-Invoke-Hermes -Args @("kanban", "unblock", $scriptTaskC.id) -EnvMap $activeEnv | Out-Null
-Invoke-Hermes -Args @("kanban", "dispatch") -EnvMap $activeEnv | Out-Null
+Invoke-Hermes -CliArgs @("kanban", "comment", $scriptTaskC.id, "Choose direction 1 and deliver the final 3-episode short-drama plan while preserving the original novel canon.") -EnvMap $activeEnv | Out-Null
+Invoke-Hermes -CliArgs @("kanban", "unblock", $scriptTaskC.id) -EnvMap $activeEnv | Out-Null
+Invoke-Hermes -CliArgs @("kanban", "dispatch") -EnvMap $activeEnv | Out-Null
 
 $showC2 = Wait-TaskStatus -EnvMap $activeEnv -TaskId $scriptTaskC.id -Wanted @("done") -TimeoutSeconds $FinalPassTimeoutSeconds
 $runsC = Get-TaskRuns -EnvMap $activeEnv -TaskId $scriptTaskC.id
